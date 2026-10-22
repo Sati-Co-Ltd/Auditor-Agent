@@ -1,0 +1,492 @@
+openapi: 3.1.0
+
+info:
+  title: NHSO DENY-list Checker API
+  version: 1.0.0
+  description: |
+    Deterministic NHSO 2026 DENY-list checker for SATI's medical-record auditors and coders
+    at Sriphat Medical Center.
+
+    Given a case's fund and coded ICD-10-TM diagnoses, the API returns any 2026 NHSO DENY
+    risks — each citing its DENY rule (code and source row) — so coders can fix documentation
+    before a claim is submitted to NHSO.
+
+    **Key rules:**
+    - NHSO DENY rules apply to **UC / UC (NHSO)** claims only.
+    - Non-UC funds (SSO, CSMBS, Private) always return `NOT_APPLICABLE`.
+    - Every finding includes an auditable citation (entry_id, source document, source row).
+    - Zero LLM calls — fully deterministic rule matching.
+
+    **Constraints:**
+    - No real patient data (PDPA). All inputs must use fictional cases only.
+    - Rule data is loaded from `private-inputs/deny-list-seed-2569.csv` at startup.
+  contact:
+    name: SATI Co., Ltd.
+  license:
+    name: Internal use only
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: check
+    description: Single-case and batch DENY-risk checks
+  - name: system
+    description: Health and metadata endpoints
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PATHS
+# ─────────────────────────────────────────────────────────────────────────────
+paths:
+
+  # ── Single-case check ──────────────────────────────────────────────────────
+  /check:
+    post:
+      tags: [check]
+      operationId: checkCase
+      summary: Check one case for NHSO DENY risks
+      description: |
+        Accepts a single case (fund + ICD-10-TM codes) and returns a risk status
+        with zero or more findings, each citing its DENY rule.
+
+        **Processing steps:**
+        1. Validate and normalise fund (`UC` → `UC (NHSO)`).
+        2. If fund is not UC/UC(NHSO) → return `NOT_APPLICABLE`.
+        3. For each ICD code, match against all DENY-list entries (exact, range, list).
+        4. Build one Finding per (deny_code, matched rule row) pair.
+        5. Return `DENY_RISK` if findings ≥ 1, otherwise `NO_RISK`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseCheckRequest'
+            examples:
+              uc_with_sepsis:
+                summary: UC case with sepsis — expects DENY_RISK CR1
+                value:
+                  case_id: GT-001
+                  fund: UC
+                  icd_codes: [A41.9, N39.0]
+              sso_case:
+                summary: SSO case — expects NOT_APPLICABLE
+                value:
+                  case_id: GT-002
+                  fund: SSO
+                  icd_codes: [E86]
+              uc_no_deny:
+                summary: UC case with no DENY rule — expects NO_RISK
+                value:
+                  case_id: GT-003
+                  fund: UC
+                  icd_codes: [K35.8]
+              uc_multi_deny:
+                summary: UC case with code matching multiple DENY codes
+                value:
+                  fund: UC (NHSO)
+                  icd_codes: [A41.9]
+      responses:
+        '200':
+          description: Check completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CaseCheckResponse'
+              examples:
+                deny_risk:
+                  summary: DENY risk found (GT-001 sepsis)
+                  value:
+                    case_id: GT-001
+                    fund: UC (NHSO)
+                    status: DENY_RISK
+                    findings:
+                      - deny_code: CR1
+                        entry_id: DENY-001
+                        matched_icd: A41.9
+                        icd_entry: A40-A41
+                        condition: SEPSIS
+                        source: "Coding Guideline ICD-10-TM 2017 V2, DENY_CODE_AI_IP_Audit column (NHSO AI IP Pre-Audit training, 23 Jul 2569)"
+                        source_row: 33
+                      - deny_code: CR37
+                        entry_id: DENY-001
+                        matched_icd: A41.9
+                        icd_entry: A40-A41
+                        condition: SEPSIS
+                        source: "Coding Guideline ICD-10-TM 2017 V2, DENY_CODE_AI_IP_Audit column (NHSO AI IP Pre-Audit training, 23 Jul 2569)"
+                        source_row: 33
+                no_risk:
+                  summary: No DENY rule for this code (GT-003)
+                  value:
+                    case_id: GT-003
+                    fund: UC (NHSO)
+                    status: NO_RISK
+                    findings: []
+                not_applicable:
+                  summary: Non-UC fund (GT-002 SSO)
+                  value:
+                    case_id: GT-002
+                    fund: SSO
+                    status: NOT_APPLICABLE
+                    findings: []
+        '422':
+          description: Validation error — missing or invalid fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                detail:
+                  - loc: [body, icd_codes]
+                    msg: ensure this value has at least 1 items
+                    type: value_error.list.min_items
+
+  # ── Batch check ────────────────────────────────────────────────────────────
+  /check/batch:
+    post:
+      tags: [check]
+      operationId: checkBatch
+      summary: Check multiple cases in one request
+      description: |
+        Accepts a list of cases and returns a risk status and findings for each.
+        Optionally filter the response to risky cases only (`risky_only: true`).
+
+        `total` always reflects the number of input cases; `risky_count` is always
+        the count of `DENY_RISK` results regardless of the `risky_only` filter.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchCheckRequest'
+            examples:
+              all_three_ground_truth:
+                summary: All three ground-truth cases
+                value:
+                  cases:
+                    - case_id: GT-001
+                      fund: UC
+                      icd_codes: [A41.9, N39.0]
+                    - case_id: GT-002
+                      fund: SSO
+                      icd_codes: [E86]
+                    - case_id: GT-003
+                      fund: UC
+                      icd_codes: [K35.8]
+                  risky_only: false
+              risky_only_true:
+                summary: Return only risky cases
+                value:
+                  cases:
+                    - case_id: GT-001
+                      fund: UC
+                      icd_codes: [A41.9, N39.0]
+                    - case_id: GT-003
+                      fund: UC
+                      icd_codes: [K35.8]
+                  risky_only: true
+      responses:
+        '200':
+          description: Batch check completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchCheckResponse'
+              examples:
+                all_cases:
+                  summary: All three ground-truth cases (risky_only false)
+                  value:
+                    total: 3
+                    risky_count: 1
+                    results:
+                      - case_id: GT-001
+                        fund: UC (NHSO)
+                        status: DENY_RISK
+                        findings:
+                          - deny_code: CR1
+                            entry_id: DENY-001
+                            matched_icd: A41.9
+                            icd_entry: A40-A41
+                            condition: SEPSIS
+                            source: "Coding Guideline ICD-10-TM 2017 V2, DENY_CODE_AI_IP_Audit column (NHSO AI IP Pre-Audit training, 23 Jul 2569)"
+                            source_row: 33
+                      - case_id: GT-002
+                        fund: SSO
+                        status: NOT_APPLICABLE
+                        findings: []
+                      - case_id: GT-003
+                        fund: UC (NHSO)
+                        status: NO_RISK
+                        findings: []
+                risky_only:
+                  summary: risky_only=true — only GT-001 returned
+                  value:
+                    total: 2
+                    risky_count: 1
+                    results:
+                      - case_id: GT-001
+                        fund: UC (NHSO)
+                        status: DENY_RISK
+                        findings:
+                          - deny_code: CR1
+                            entry_id: DENY-001
+                            matched_icd: A41.9
+                            icd_entry: A40-A41
+                            condition: SEPSIS
+                            source: "Coding Guideline ICD-10-TM 2017 V2, DENY_CODE_AI_IP_Audit column (NHSO AI IP Pre-Audit training, 23 Jul 2569)"
+                            source_row: 33
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  # ── Health check ────────────────────────────────────────────────────────────
+  /health:
+    get:
+      tags: [system]
+      operationId: healthCheck
+      summary: Application health and DENY-list load status
+      description: |
+        Returns `ok` when the application is running and the DENY list has been
+        loaded successfully. Returns `degraded` if the DENY list failed to load.
+        Use this endpoint to confirm the service is ready before sending checks.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                deny_list_loaded: true
+                rule_count: 13
+                loaded_at: "2026-10-22T06:45:00Z"
+                source_file: private-inputs/deny-list-seed-2569.csv
+        '503':
+          description: Service is degraded (DENY list not loaded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: degraded
+                deny_list_loaded: false
+                rule_count: 0
+                loaded_at: null
+                source_file: null
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────────────────────────────────────
+components:
+  schemas:
+
+    # ── Requests ──────────────────────────────────────────────────────────────
+
+    CaseCheckRequest:
+      type: object
+      required: [fund, icd_codes]
+      properties:
+        case_id:
+          type: string
+          nullable: true
+          description: |
+            Optional caller-supplied identifier for this case.
+            Echoed back unchanged in the response. Not used for matching.
+          example: GT-001
+        fund:
+          type: string
+          minLength: 1
+          description: |
+            Healthcare reimbursement fund for this case.
+            Matching is case-insensitive; leading/trailing whitespace is trimmed.
+            Accepted values: UC, UC (NHSO), SSO, CSMBS, Private.
+            UC and UC (NHSO) are treated as the same fund and normalised to UC (NHSO).
+          example: UC
+        icd_codes:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+          description: |
+            One or more ICD-10-TM diagnosis codes assigned to this case.
+            Each code is trimmed of whitespace before matching.
+          example: [A41.9, N39.0]
+
+    BatchCheckRequest:
+      type: object
+      required: [cases]
+      properties:
+        cases:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/CaseCheckRequest'
+          description: One or more cases to check. Must not be empty.
+        risky_only:
+          type: boolean
+          default: false
+          description: |
+            When true, the results array contains only cases with status DENY_RISK.
+            total and risky_count always reflect the full input regardless of this flag.
+
+    # ── Responses ─────────────────────────────────────────────────────────────
+
+    CaseCheckResponse:
+      type: object
+      required: [fund, status, findings]
+      properties:
+        case_id:
+          type: string
+          nullable: true
+          description: Echoed from the request. Null if not provided in the request.
+          example: GT-001
+        fund:
+          type: string
+          description: |
+            Normalised fund value. UC and UC (NHSO) inputs are both returned as UC (NHSO).
+            Non-UC values are returned as-is.
+          example: UC (NHSO)
+        status:
+          $ref: '#/components/schemas/RiskStatus'
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Finding'
+          description: |
+            List of DENY risk findings. Always present; empty array when status is
+            NO_RISK or NOT_APPLICABLE.
+
+    BatchCheckResponse:
+      type: object
+      required: [total, risky_count, results]
+      properties:
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of cases in the request, before any risky_only filter.
+          example: 3
+        risky_count:
+          type: integer
+          minimum: 0
+          description: Number of cases with status DENY_RISK, regardless of risky_only filter.
+          example: 1
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/CaseCheckResponse'
+          description: |
+            Results per case. If risky_only was true, contains only DENY_RISK cases.
+            Order matches the input cases order (after optional filtering).
+
+    Finding:
+      type: object
+      required: [deny_code, entry_id, matched_icd, icd_entry, condition, source, source_row]
+      description: |
+        One identified DENY risk. Produced for each (deny_code, rule row) pair that
+        an input ICD code matches. A single input code may produce multiple findings
+        if it matches a rule row with multiple deny_codes (e.g. A41.9 → CR1 and CR37).
+      properties:
+        deny_code:
+          type: string
+          description: The DENY code triggered by this match (e.g. CR1, CR37, CR19).
+          example: CR1
+        entry_id:
+          type: string
+          description: |
+            The rule row ID from the DENY seed list (format DENY-NNN).
+            Use this to trace the finding back to its source rule.
+          example: DENY-001
+        matched_icd:
+          type: string
+          description: The input ICD-10-TM code that matched this rule entry.
+          example: A41.9
+        icd_entry:
+          type: string
+          description: |
+            The rule's ICD entry string as it appears in the DENY list.
+            May be a single code, a range, or a comma-separated list.
+          example: A40-A41
+        condition:
+          type: string
+          description: Human-readable clinical condition name for this rule entry.
+          example: SEPSIS
+        source:
+          type: string
+          description: Full citation of the guideline document this rule came from.
+          example: "Coding Guideline ICD-10-TM 2017 V2, DENY_CODE_AI_IP_Audit column (NHSO AI IP Pre-Audit training, 23 Jul 2569)"
+        source_row:
+          type: integer
+          minimum: 1
+          description: Row number in the source guideline document. Required for auditable citation (constraint C-R3).
+          example: 33
+
+    RiskStatus:
+      type: string
+      enum: [DENY_RISK, NO_RISK, NOT_APPLICABLE]
+      description: |
+        Risk classification for a case:
+        - DENY_RISK: UC-funded case with ≥1 ICD code matching a DENY rule.
+        - NO_RISK: UC-funded case with 0 ICD codes matching any DENY rule.
+        - NOT_APPLICABLE: Non-UC fund (SSO, CSMBS, Private); NHSO DENY rules do not apply.
+      example: DENY_RISK
+
+    HealthResponse:
+      type: object
+      required: [status, deny_list_loaded, rule_count]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+          description: ok when DENY list is loaded; degraded if it failed to load.
+          example: ok
+        deny_list_loaded:
+          type: boolean
+          description: True if the DENY seed list was loaded successfully at startup.
+          example: true
+        rule_count:
+          type: integer
+          minimum: 0
+          description: Number of DENY rules currently loaded in memory.
+          example: 13
+        loaded_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: UTC timestamp when the DENY list was loaded. Null if not loaded.
+          example: "2026-10-22T06:45:00Z"
+        source_file:
+          type: string
+          nullable: true
+          description: Path to the CSV file that was loaded. Null if not loaded.
+          example: private-inputs/deny-list-seed-2569.csv
+
+    ValidationError:
+      type: object
+      description: FastAPI / Pydantic validation error response (HTTP 422).
+      required: [detail]
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            required: [loc, msg, type]
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+                description: Location of the invalid field (e.g. [body, icd_codes]).
+                example: [body, icd_codes]
+              msg:
+                type: string
+                description: Human-readable validation message.
+                example: ensure this value has at least 1 items
+              type:
+                type: string
+                description: Pydantic error type code.
+                example: value_error.list.min_items
