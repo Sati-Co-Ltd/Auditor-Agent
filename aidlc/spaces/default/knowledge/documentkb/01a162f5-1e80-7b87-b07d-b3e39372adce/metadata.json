@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "id": "01a162f5-1e80-7b87-b07d-b3e39372adce",
+  "source": {
+    "kind": "managed",
+    "path": "documents/icd9.json"
+  },
+  "sha256": "d45fd6f1ebcf78c5aec219ad8aee0f48375a17df8259e0155778fef25fcece22",
+  "bytes": 1381279,
+  "indexed_at": "2026-10-22T09:33:13.553Z",
+  "extraction": {
+    "state": "extracted",
+    "extractor": {
+      "name": "builtin-text",
+      "version": "1"
+    },
+    "chars": 200000,
+    "truncated": true,
+    "source_revision": "d45fd6f1ebcf78c5aec219ad8aee0f48375a17df8259e0155778fef25fcece22"
+  },
+  "summary": {
+    "state": "absent"
+  },
+  "content": "documentkb/01a162f5-1e80-7b87-b07d-b3e39372adce/content.md",
+  "content_sha256": "974d2c871204385d47bd60cfde59179c8012cc5cc965a74c5af729cdd0f22b17",
+  "content_trust": "untrusted",
+  "content_handling": "data-not-instructions"
+}

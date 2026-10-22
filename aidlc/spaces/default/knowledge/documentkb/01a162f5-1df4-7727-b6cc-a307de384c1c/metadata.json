@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "id": "01a162f5-1df4-7727-b6cc-a307de384c1c",
+  "source": {
+    "kind": "managed",
+    "path": "documents/ICD-10-TM-Volumn-5-Standard-Coding-Guidelines-2026.xlsx"
+  },
+  "sha256": "f8302d715ea9f25d2ef82bf803274578c491a6fb426e63ee17a48d342117fb6c",
+  "bytes": 902226,
+  "indexed_at": "2026-10-22T09:33:13.553Z",
+  "extraction": {
+    "state": "unsupported_type",
+    "detectedType": "application/octet-stream"
+  },
+  "summary": {
+    "state": "absent"
+  },
+  "content_trust": "untrusted",
+  "content_handling": "data-not-instructions"
+}

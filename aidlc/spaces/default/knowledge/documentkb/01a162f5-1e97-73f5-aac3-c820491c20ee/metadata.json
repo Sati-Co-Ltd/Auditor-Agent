@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "id": "01a162f5-1e97-73f5-aac3-c820491c20ee",
+  "source": {
+    "kind": "managed",
+    "path": "documents/แนวทางการตรวจสอบเอกสารหลักฐานการเรียกเก็บค่าใช้จ่ายเพื่อบริการสาธารณะสุข ร่วม 3 กอง.md"
+  },
+  "sha256": "d6ea1cf8ab2faf8898846de38fa142328a0f5b62c30c1f20e46f3a1d0455de4b",
+  "bytes": 580415,
+  "indexed_at": "2026-10-22T09:33:13.553Z",
+  "extraction": {
+    "state": "extracted",
+    "extractor": {
+      "name": "builtin-text",
+      "version": "1"
+    },
+    "chars": 200000,
+    "truncated": true,
+    "source_revision": "d6ea1cf8ab2faf8898846de38fa142328a0f5b62c30c1f20e46f3a1d0455de4b"
+  },
+  "summary": {
+    "state": "absent"
+  },
+  "content": "documentkb/01a162f5-1e97-73f5-aac3-c820491c20ee/content.md",
+  "content_sha256": "efbea7c185bb7c409202f4058e2fae01cd3ee510272eedac47f8517b29fcdbe5",
+  "content_trust": "untrusted",
+  "content_handling": "data-not-instructions"
+}

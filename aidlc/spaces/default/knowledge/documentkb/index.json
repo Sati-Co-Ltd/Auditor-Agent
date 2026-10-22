@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "documents": [
+    {
+      "id": "01a162f5-1df4-7727-b6cc-a307de384c1c",
+      "source": {
+        "kind": "managed",
+        "path": "documents/ICD-10-TM-Volumn-5-Standard-Coding-Guidelines-2026.xlsx"
+      },
+      "sha256": "f8302d715ea9f25d2ef82bf803274578c491a6fb426e63ee17a48d342117fb6c",
+      "bytes": 902226,
+      "indexed_at": "2026-10-22T09:33:13.553Z",
+      "extraction": {
+        "state": "unsupported_type",
+        "detectedType": "application/octet-stream"
+      },
+      "summary": {
+        "state": "absent"
+      }
+    },
+    {
+      "id": "01a162f5-1e5f-742d-874d-08df615e4931",
+      "source": {
+        "kind": "managed",
+        "path": "documents/icd10_draft_v3 (4).csv"
+      },
+      "sha256": "c3c08836c652b3b99e2d7803566a5bf633116903fe90b43e176141ba670619ab",
+      "bytes": 18196338,
+      "indexed_at": "2026-10-22T09:33:13.553Z",
+      "extraction": {
+        "state": "extracted",
+        "extractor": {
+          "name": "builtin-text",
+          "version": "1"
+        },
+        "chars": 200000,
+        "truncated": true,
+        "source_revision": "c3c08836c652b3b99e2d7803566a5bf633116903fe90b43e176141ba670619ab"
+      },
+      "summary": {
+        "state": "absent"
+      },
+      "content": "documentkb/01a162f5-1e5f-742d-874d-08df615e4931/content.md",
+      "content_sha256": "29430fffb5113d6c58637e97fad7151f661cd45c87a9ba53e45f17ed7fc9a55f"
+    },
+    {
+      "id": "01a162f5-1e80-7b87-b07d-b3e39372adce",
+      "source": {
+        "kind": "managed",
+        "path": "documents/icd9.json"
+      },
+      "sha256": "d45fd6f1ebcf78c5aec219ad8aee0f48375a17df8259e0155778fef25fcece22",
+      "bytes": 1381279,
+      "indexed_at": "2026-10-22T09:33:13.553Z",
+      "extraction": {
+        "state": "extracted",
+        "extractor": {
+          "name": "builtin-text",
+          "version": "1"
+        },
+        "chars": 200000,
+        "truncated": true,
+        "source_revision": "d45fd6f1ebcf78c5aec219ad8aee0f48375a17df8259e0155778fef25fcece22"
+      },
+      "summary": {
+        "state": "absent"
+      },
+      "content": "documentkb/01a162f5-1e80-7b87-b07d-b3e39372adce/content.md",
+      "content_sha256": "974d2c871204385d47bd60cfde59179c8012cc5cc965a74c5af729cdd0f22b17"
+    },
+    {
+      "id": "01a162f5-1e97-73f5-aac3-c820491c20ee",
+      "source": {
+        "kind": "managed",
+        "path": "documents/แนวทางการตรวจสอบเอกสารหลักฐานการเรียกเก็บค่าใช้จ่ายเพื่อบริการสาธารณะสุข ร่วม 3 กอง.md"
+      },
+      "sha256": "d6ea1cf8ab2faf8898846de38fa142328a0f5b62c30c1f20e46f3a1d0455de4b",
+      "bytes": 580415,
+      "indexed_at": "2026-10-22T09:33:13.553Z",
+      "extraction": {
+        "state": "extracted",
+        "extractor": {
+          "name": "builtin-text",
+          "version": "1"
+        },
+        "chars": 200000,
+        "truncated": true,
+        "source_revision": "d6ea1cf8ab2faf8898846de38fa142328a0f5b62c30c1f20e46f3a1d0455de4b"
+      },
+      "summary": {
+        "state": "absent"
+      },
+      "content": "documentkb/01a162f5-1e97-73f5-aac3-c820491c20ee/content.md",
+      "content_sha256": "efbea7c185bb7c409202f4058e2fae01cd3ee510272eedac47f8517b29fcdbe5"
+    }
+  ]
+}
