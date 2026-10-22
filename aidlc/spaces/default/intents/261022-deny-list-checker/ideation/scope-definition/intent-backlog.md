@@ -12,9 +12,12 @@ Upstream: `aidlc/spaces/default/intents/261022-deny-list-checker/ideation/intent
 | IB-4 | UC-only rule and "not applicable" for SSO, CSMBS and private | Must | IB-1 | Covers GT-002 and the non-UC metric (intent statement) |
 | IB-5 | Citation on every finding (DENY code and source row) | Must | IB-2 | Auditable findings (intent statement) |
 | IB-6 | Tests from all sample cases ("expected code contained in findings") | Must | IB-3, IB-4, IB-5 | 100% of sample cases pass (intent statement) |
-| IB-7 | Batch check of several cases for auditors | Could | IB-6 | Auditors review many cases at once (Q1) |
+| IB-7 | Batch check of several cases; response includes risk-level per case and risky-cases-only filter | Must | IB-6, IB-10 | Auditors scan all cases and click into risky ones (scope expansion 22 Oct) |
 | IB-8 | Excel reading for the official list | Won't (this time) | — | Added when the file arrives (constraint register C-T4) |
-| IB-9 | Stricter criteria text on findings | Won't (this time) | — | Open question (intent statement) |
+| IB-9 | Guideline reference (GL) citation on every failed criterion | Could | IB-2 | Coder sees exactly which GL rule caused the finding (scope expansion 22 Oct) |
+| IB-10 | Risk-level flag on single-case response: `DENY_RISK` / `NO_RISK` / `NOT_APPLICABLE` | Must | IB-1 | Enables batch risk view and per-case status (scope expansion 22 Oct) |
+| IB-11 | Per-case disease-level detail: ICD-9 procedure codes checked against guideline criteria | Could | IB-3, D4 | Full audit per disease beyond DENY code (scope expansion 22 Oct; blocked without `private-inputs/icd9-criteria.csv`) |
+| IB-12 | Per-case lab and evidence check against guideline criteria | Could | IB-3, D5 | Flags cases where labs don't support the ICD codes (scope expansion 22 Oct; blocked without `private-inputs/lab-criteria.csv`) |
 
 ## Value Stream
 
