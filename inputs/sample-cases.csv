@@ -1,0 +1,4 @@
+case_id,fund,coded_diagnoses,expect_deny,deny_code,why
+GT-001,UC,A41.9;N39.0,Y,CR1,Sepsis coded without blood culture or lactate
+GT-002,SSO,E86,N,,NHSO DENY rules do not apply to SSO
+GT-003,UC,K35.8,N,,No DENY rule for this code
