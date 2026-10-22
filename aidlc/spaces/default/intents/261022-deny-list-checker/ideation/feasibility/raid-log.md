@@ -6,7 +6,8 @@ Upstream: `aidlc/spaces/default/intents/261022-deny-list-checker/ideation/intent
 
 | ID | Risk | Likelihood | Impact | Owner | Response |
 |----|------|------------|--------|-------|----------|
-| R1 | Scope grows beyond the 13:45-16:30 build window | Medium | High | K'Pop (product owner) | Hold to core check, tests and API (Q1) |
+| R1 | Scope grows beyond the 13:45-16:30 build window | Medium | High | K'Pop (product owner) | Must items only in time box; Could items (IB-9, IB-11, IB-12) dropped if time runs short |
+| R5 | ICD-9 / lab criteria data files not available at build time | High | Medium | SATI clinical team | IB-11 and IB-12 blocked without D4/D5; Must items unaffected |
 | R2 | ICD code-range matching is wrong for an edge case | Medium | High | Build team | Matching rules in requirements; tests for range, single code and list |
 | R3 | Official 2026 list differs in shape or format from the seed list | Medium | Medium | Build team | List kept as data; Excel support added when the file arrives (Q3) |
 | R4 | 3 sample cases are too few to prove correctness | High | Medium | Pod B | Extend ground truth to 15-25 cases (intent statement) |
@@ -33,3 +34,5 @@ Upstream: `aidlc/spaces/default/intents/261022-deny-list-checker/ideation/intent
 | D1 | SATI's official 2026 DENY list | SATI | No: release ships on the seed list (Q2) |
 | D2 | Ground truth extended to 15-25 fictional cases | Pod B | No: release ships on the 3 sample cases (Q2) |
 | D3 | Deployment to SATI's dev environment | Separate run | No: this run is local only (intent statement) |
+| D4 | ICD-9 criteria data file (`private-inputs/icd9-criteria.csv`) | SATI clinical team | Only for IB-11 (Could); Must items are not blocked |
+| D5 | Lab/evidence criteria data file (`private-inputs/lab-criteria.csv`) | SATI clinical team | Only for IB-12 (Could); Must items are not blocked |
